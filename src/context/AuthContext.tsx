@@ -1,76 +1,64 @@
-"use client"
+'use client';
 
-import React, { createContext, useContext, useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-
-type UserRole = "mahasiswa" | "admin"
-
-interface User {
-    username: string
-    role: UserRole
-}
+import React, { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { type User, type UserRole } from '@/lib/types';
+import { mockUsers } from '@/lib/mock-data';
 
 interface AuthContextType {
-    user: User | null
-    isLoading: boolean
-    login: (username: string, pass: string) => boolean
-    logout: () => void
+  user: User | null;
+  isAuthenticated: boolean;
+  login: (username: string, password: string) => boolean;
+  logout: () => void;
+  hasRole: (role: UserRole) => boolean;
+  hasAnyRole: (...roles: UserRole[]) => boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-    const [user, setUser] = useState<User | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
-    const router = useRouter()
-
-    useEffect(() => {
-        const storedUser = localStorage.getItem("user")
-        if (storedUser) {
-            setUser(JSON.parse(storedUser))
-        }
-        setIsLoading(false)
-    }, [])
-
-    const login = (username: string, pass: string) => {
-        if (username === "mahasiswa1@gmail.com" && pass === "mahasiswa1") {
-            const newUser: User = { username: "Mahasiswa1", role: "mahasiswa" }
-            setUser(newUser)
-            localStorage.setItem("user", JSON.stringify(newUser))
-            return true
-        }
-        if (username === "mahasiswa2@gmail.com" && pass === "mahasiswa2") {
-            const newUser: User = { username: "Mahasiswa2", role: "mahasiswa" }
-            setUser(newUser)
-            localStorage.setItem("user", JSON.stringify(newUser))
-            return true
-        }
-        if (username === "admin" && pass === "admin") {
-            const newUser: User = { username: "Admin", role: "admin" }
-            setUser(newUser)
-            localStorage.setItem("user", JSON.stringify(newUser))
-            return true
-        }
-        return false
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('silog_user');
+      if (saved) {
+        try { return JSON.parse(saved); } catch { return null; }
+      }
     }
+    return null;
+  });
 
-    const logout = () => {
-        setUser(null)
-        localStorage.removeItem("user")
-        router.push("/login")
+  const login = useCallback((username: string, _password: string): boolean => {
+    // Simulasi: password apapun diterima, cek username saja
+    const found = mockUsers.find(u => u.username === username);
+    if (found) {
+      setUser(found);
+      localStorage.setItem('silog_user', JSON.stringify(found));
+      return true;
     }
+    return false;
+  }, []);
 
-    return (
-        <AuthContext.Provider value={{ user, isLoading, login, logout }}>
-            {children}
-        </AuthContext.Provider>
-    )
+  const logout = useCallback(() => {
+    setUser(null);
+    localStorage.removeItem('silog_user');
+  }, []);
+
+  const hasRole = useCallback((role: UserRole): boolean => {
+    return user?.role === role;
+  }, [user]);
+
+  const hasAnyRole = useCallback((...roles: UserRole[]): boolean => {
+    return user ? roles.includes(user.role) : false;
+  }, [user]);
+
+  return (
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout, hasRole, hasAnyRole }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
-    const context = useContext(AuthContext)
-    if (context === undefined) {
-        throw new Error("useAuth must be used within an AuthProvider")
-    }
-    return context
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  return ctx;
 }

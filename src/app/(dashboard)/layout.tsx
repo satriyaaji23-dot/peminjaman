@@ -1,42 +1,45 @@
-"use client"
+'use client';
 
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { Navbar } from "@/components/navbar"
-import { useAuth } from "@/context/AuthContext"
+import React from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { useApp } from '@/context/AppContext';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import Sidebar from '@/components/layout/Sidebar';
+import Header from '@/components/layout/Header';
 
-export default function DashboardLayout({
-    children,
-}: {
-    children: React.ReactNode
-}) {
-    const { user, isLoading } = useAuth()
-    const router = useRouter()
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAuth();
+  const { sidebarCollapsed } = useApp();
+  const router = useRouter();
 
-    useEffect(() => {
-        if (!isLoading && !user) {
-            router.push("/login")
-        }
-    }, [user, isLoading, router])
-
-    if (isLoading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-        )
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.replace('/login');
     }
+  }, [isAuthenticated, router]);
 
-    if (!user) {
-        return null // Will redirect in useEffect
-    }
-
+  if (!isAuthenticated) {
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
-            <Navbar />
-            <main className="container mx-auto p-4 md:p-8">
-                {children}
-            </main>
-        </div>
-    )
+      <div className="min-h-screen flex items-center justify-center bg-[#f0f4f8]">
+        <span className="text-gray-500">Mengalihkan ke halaman login...</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#f0f4f8]">
+      <Sidebar />
+      <div
+        className={`transition-all duration-300 ${
+          sidebarCollapsed ? 'lg:ml-[68px]' : 'lg:ml-64'
+        }`}
+      >
+        <Header />
+        <main className="p-4 lg:p-6">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
 }
