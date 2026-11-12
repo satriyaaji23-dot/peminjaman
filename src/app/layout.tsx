@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
 import { AppProvider } from '@/context/AppContext';
+import { DataProvider } from '@/context/DataContext';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -19,9 +20,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="id">
       <body className={`${inter.variable} font-sans antialiased`}>
         <AuthProvider>
-          <AppProvider>
-            {children}
-          </AppProvider>
+          <DataProvider>
+            <AppProvider>
+              {children}
+            </AppProvider>
+          </DataProvider>
         </AuthProvider>
       </body>
     </html>
